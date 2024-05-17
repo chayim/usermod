@@ -1,10 +1,12 @@
 package usermod
 
 import (
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
-func NewUser(name, email, password []byte) *User {
+// TODO add support for activated or confirmed user
+func NewUser(name, email string, password []byte) *User {
 	return &User{
 		Name:      name,
 		Email:     email,
@@ -13,7 +15,7 @@ func NewUser(name, email, password []byte) *User {
 	}
 }
 
-func NewUserWithPhoneNumber(name, email, password, phone []byte) *User {
+func NewUserWithPhoneNumber(name, email string, password []byte, phone string) *User {
 	u := NewUser(name, email, password)
 	u.PhoneNumber = phone
 	return u
@@ -25,20 +27,46 @@ func (u *User) Insert(db *gorm.DB) error {
 }
 
 func (u *User) ChangePassword(db *gorm.DB, password []byte) error {
-	return nil
+	cryptpass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	res := db.Update("password", cryptpass)
+	return res.Error
 }
 
-func (u *User) Update(db *gorm.DB, name, email, phone []byte) error {
-	if len(name) > 0 {
-		u.Name = name
+func AuthenticateByEmail(db *gorm.DB, email, password []byte) (*User, error) {
+	u := User{}
+	res := db.Where("email = ?", email).First(&u)
+	if res.Error != nil {
+		return nil, res.Error
 	}
-	if len(email) > 0 {
-		u.Email = email
+	err := u.ValidatePassword(db, password)
+	return &u, err
+}
+
+func AuthenticateByUID(db *gorm.DB, id, password []byte) (*User, error) {
+	u := User{}
+	res := db.Where("id = ?", id).First(&u)
+	if res.Error != nil {
+		return nil, res.Error
 	}
-	if len(phone) > 0 {
-		u.PhoneNumber = phone
-	}
-	return nil
+	err := u.ValidatePassword(db, password)
+	return &u, err
+}
+
+func (u *User) ValidatePassword(db *gorm.DB, password []byte) error {
+	err := bcrypt.CompareHashAndPassword(u.Password, password)
+	return err
+}
+
+func Update(db *gorm.DB, id string, name, email, phone string) error {
+
+	u := User{Name: name, Email: email, PhoneNumber: phone}
+
+	res := db.Model(&User{}).Where("id = ?", id).Updates(u)
+
+	return res.Error
 }
 
 func GetOne(db *gorm.DB, id string) (*User, error) {
