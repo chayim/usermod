@@ -2,7 +2,6 @@ package usermod_test
 
 import (
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/chayim/usermod"
@@ -12,19 +11,19 @@ import (
 	"gorm.io/gorm"
 )
 
-type TestSuite struct {
+type UserModTestSuite struct {
 	ts *httptest.Server
 	db *gorm.DB
 	suite.Suite
 }
 
-func (suite *TestSuite) BeforeTest(suiteName, testName string) {
+func (suite *UserModTestSuite) BeforeTest(suiteName, testName string) {
 	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
 	r := chi.NewRouter()
 	suite.db = db
 
 	// migrate tables
-	db.AutoMigrate(&usermod.User{}, &usermod.UserAddress{})
+	db.AutoMigrate(&usermod.User{})
 
 	r2 := usermod.NewRouter(suite.db)
 	r.Mount("/api", r2)
@@ -32,10 +31,10 @@ func (suite *TestSuite) BeforeTest(suiteName, testName string) {
 
 }
 
-func (suite *TestSuite) AfterTest(suiteName, testName string) {
+func (suite *UserModTestSuite) AfterTest(suiteName, testName string) {
 	suite.ts.Close()
 }
 
-func TestMain(m *testing.M) {
-	os.Exit(m.Run())
+func TestSuite(t *testing.T) {
+	suite.Run(t, new(UserModTestSuite))
 }

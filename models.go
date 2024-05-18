@@ -7,12 +7,12 @@ import (
 
 type User struct {
 	gorm.Model
-	ID          uuid.UUID
-	Name        string `json:"name"`
-	Email       string `json:"email"`
-	Password    []byte `json:"password"`
-	PhoneNumber string `json:"phone" gorm:"default:null"`
-	IsDeleted   bool   `json:"-" gorm:"default:false"`
+	ID          uuid.UUID `gorm:"type:uuid;primaryKey;"`
+	Name        string    `json:"name"`
+	Email       string    `json:"email"`
+	Password    []byte    `json:"password"`
+	PhoneNumber string    `json:"phone" gorm:"default:null"`
+	IsDeleted   bool      `json:"-" gorm:"default:false"`
 }
 
 type UserAddress struct {

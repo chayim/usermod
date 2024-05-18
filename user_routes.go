@@ -94,7 +94,7 @@ func (rr *Router) ChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	newPassword := r.FormValue("password")
 	oldPassword := r.FormValue("oldPassword")
-	u, err := AuthenticateByUID(rr.db, []byte(uid), []byte(oldPassword))
+	u, err := AuthenticateByUID(rr.db, uid, []byte(oldPassword))
 	if err != nil {
 		jsonError(w, err, http.StatusInternalServerError)
 		return
