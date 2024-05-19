@@ -13,14 +13,15 @@ type Router struct {
 	db *gorm.DB
 }
 
+// NewRouter should be mounted to the correct location within your application
 func NewRouter(db *gorm.DB) *chi.Mux {
 	rr := Router{db: db}
 	r := chi.NewRouter()
-	r.Get("/users", rr.Get)
-	r.Post("/users", rr.CreateUser)
-	r.Post("/users/change_password", rr.ChangePassword)
-	r.Patch("/users", rr.UpdateUser)
-	r.Delete("/users", rr.DeleteUser)
+	r.Get("/", rr.Get)
+	r.Post("/", rr.CreateUser)
+	r.Post("/change_password", rr.ChangePassword)
+	r.Patch("/", rr.UpdateUser)
+	r.Delete("/", rr.DeleteUser)
 	return r
 }
 

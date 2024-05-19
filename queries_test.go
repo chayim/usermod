@@ -10,56 +10,60 @@ import (
 
 var testPassword = []byte("iamapasword")
 
-func newUser() *usermod.User {
-	return usermod.NewUser("Chayim", "c@kirshen.com", testPassword)
+func (s *UserModTestSuite) newUser() *usermod.User {
+	u := usermod.NewUser("Chayim", "c@kirshen.com", testPassword)
+	err := u.Insert(s.db)
+	assert.Nil(s.T(), err)
+	return u
 }
 
 func (s *UserModTestSuite) TestCreateGetDelete() {
-	u := newUser()
-	err := u.Insert(s.db)
-	assert.Nil(s.T(), err)
-
-	u2 := usermod.User{}
-	res := s.db.Take(&u2)
-	assert.Nil(s.T(), res.Error)
-	assert.Equal(s.T(), u.Email, u2.Email)
+	u := s.newUser()
 
 	dRes := usermod.DeleteByUID(s.db, u.ID.String())
 	assert.Nil(s.T(), dRes)
+	_, err := usermod.GetOne(s.db, u.ID.String())
+	assert.NotNil(s.T(), err)
 
-	u = newUser()
-	u.Insert(s.db)
-	sRes := usermod.SoftDeleteByUID(s.db, u.ID.String())
+	u2 := s.newUser()
+	u2.Insert(s.db)
+	sRes := usermod.SoftDeleteByUID(s.db, u2.ID.String())
 	assert.Nil(s.T(), sRes)
 
-	// // soft delete check
-	u2 = usermod.User{}
+	// soft delete check
 	s.db.Take(&u2)
 	assert.True(s.T(), u2.IsDeleted)
 }
 
+func (s *UserModTestSuite) TestActivateUser() {
+	u := s.newUser()
+	assert.False(s.T(), u.IsActivated)
+
+	err := usermod.ActivateUser(s.db, u.Email)
+	assert.Nil(s.T(), err)
+
+	found, _ := usermod.GetOne(s.db, u.ID.String())
+	assert.True(s.T(), found.IsActivated)
+}
+
 func (s *UserModTestSuite) TestCreateUpdateGet() {
-	u := newUser()
-	err := u.Insert(s.db)
+	u := s.newUser()
+
+	err := usermod.Update(s.db, u.ID.String(), "", "not@email.com", "")
 	assert.Nil(s.T(), err)
 
-	err = usermod.Update(s.db, u.ID.String(), "", "not@email.com", "")
+	u2, err := usermod.GetOne(s.db, u.ID.String())
 	assert.Nil(s.T(), err)
-
-	u2 := usermod.User{}
-	s.db.Take(&u2)
 	assert.Equal(s.T(), u2.Email, "not@email.com")
 	assert.Equal(s.T(), u2.Name, u.Name)
 	assert.Equal(s.T(), u2.PhoneNumber, u.PhoneNumber)
 }
 
 func (s *UserModTestSuite) TestChangePassword() {
-	u := newUser()
-	err := u.Insert(s.db)
-	assert.Nil(s.T(), err)
+	u := s.newUser()
 	original := u.Password
 
-	err = u.ChangePassword(s.db, []byte("potatofurby"))
+	err := u.ChangePassword(s.db, []byte("potatofurby"))
 	assert.Nil(s.T(), err)
 
 	found, err := usermod.GetOne(s.db, u.ID.String())
@@ -68,9 +72,7 @@ func (s *UserModTestSuite) TestChangePassword() {
 }
 
 func (s *UserModTestSuite) TestAuthentication() {
-	user := newUser()
-	err := user.Insert(s.db)
-	assert.Nil(s.T(), err)
+	user := s.newUser()
 
 	tests := []struct {
 		name     string

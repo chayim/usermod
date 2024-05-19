@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type UserModTestSuite struct {
@@ -17,8 +18,10 @@ type UserModTestSuite struct {
 	suite.Suite
 }
 
-func (suite *UserModTestSuite) BeforeTest(suiteName, testName string) {
-	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{})
+// func (suite *UserModTestSuite) BeforeTest(suiteName, testName string) {
+func (suite *UserModTestSuite) SetupTest() {
+	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"),
+		&gorm.Config{Logger: logger.Default.LogMode(logger.Error)})
 	r := chi.NewRouter()
 	suite.db = db
 

@@ -10,11 +10,12 @@ import (
 func NewUser(name, email string, password []byte) *User {
 	cryptpass, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	return &User{
-		ID:        uuid.New(),
-		Name:      name,
-		Email:     email,
-		Password:  cryptpass,
-		IsDeleted: false,
+		ID:          uuid.New(),
+		Name:        name,
+		Email:       email,
+		Password:    cryptpass,
+		IsActivated: false,
+		IsDeleted:   false,
 	}
 }
 
@@ -27,6 +28,11 @@ func NewUserWithPhoneNumber(name, email string, password []byte, phone string) *
 func (u *User) Insert(db *gorm.DB) error {
 	result := db.Create(&u)
 	return result.Error
+}
+
+func ActivateUser(db *gorm.DB, email string) error {
+	res := db.Model(&User{}).Where("email = ?", email).Update("is_activated", true)
+	return res.Error
 }
 
 func (u *User) ChangePassword(db *gorm.DB, password []byte) error {

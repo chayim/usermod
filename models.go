@@ -12,6 +12,7 @@ type User struct {
 	Email       string    `json:"email"`
 	Password    []byte    `json:"password"`
 	PhoneNumber string    `json:"phone" gorm:"default:null"`
+	IsActivated bool      `json:"-" gorm:"default:false"`
 	IsDeleted   bool      `json:"-" gorm:"default:false"`
 }
 
