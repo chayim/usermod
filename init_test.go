@@ -1,43 +1,54 @@
 package usermod_test
 
 import (
+	"database/sql"
+	"log"
+	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/chayim/usermod"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/suite"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 )
 
 type UserModTestSuite struct {
 	ts *httptest.Server
-	db *gorm.DB
+	db *sql.DB
 	suite.Suite
 }
 
 // func (suite *UserModTestSuite) BeforeTest(suiteName, testName string) {
 func (suite *UserModTestSuite) SetupTest() {
-	db, _ := gorm.Open(sqlite.Open("file::memory:?cache=shared"),
-		&gorm.Config{Logger: logger.Default.LogMode(logger.Error)})
+
+	db, err := sql.Open("sqlite3", "file::memory:?cache=shared")
+	if err != nil {
+		log.Fatal(err)
+	}
 	r := chi.NewRouter()
 	suite.db = db
 
-	// migrate tables
-	db.AutoMigrate(&usermod.User{})
+	usermod.CreateAllTables(suite.db)
 
 	r2 := usermod.NewRouter(suite.db)
 	r.Mount("/api", r2)
-	suite.ts = httptest.NewServer(r)
 
+	r.With(usermod.BasicAuth(suite.db)).Get("/auth", testingEndpoint)
+	// r.With(usermod.JWTTokenAuth(testingEndpoint)).Get("/auth2", testingEndpoint)
+	suite.ts = httptest.NewServer(r)
 }
 
 func (suite *UserModTestSuite) AfterTest(suiteName, testName string) {
 	suite.ts.Close()
+	suite.db.Close()
 }
 
 func TestSuite(t *testing.T) {
 	suite.Run(t, new(UserModTestSuite))
+}
+
+func testingEndpoint(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
 }
